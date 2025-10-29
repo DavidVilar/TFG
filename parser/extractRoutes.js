@@ -1,4 +1,3 @@
-// parser/extractRoutes.js
 const fs = require("fs");
 const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
@@ -8,7 +7,7 @@ const inputPath = process.argv[2];
 const outputPath = process.argv[3];
 
 if (!inputPath || !outputPath) {
-  console.error("❌ Ús: node parser/extractRoutes.js <fitxer_entrada.js> <fitxer_sortida.json>");
+  console.error("Ús: node parser/extractRoutes.js <fitxer_entrada.js> <fitxer_sortida.json>");
   process.exit(1);
 }
 
