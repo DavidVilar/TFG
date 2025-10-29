@@ -1,0 +1,28 @@
+{
+  "name": "tfg",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "parse": "node parser/extractRoutes.js examples/example1.js output/routes.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavidVilar/TFG.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DavidVilar/TFG/issues"
+  },
+  "homepage": "https://github.com/DavidVilar/TFG#readme",
+  "dependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5"
+  }
+}

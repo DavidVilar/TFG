@@ -1,0 +1,14 @@
+[
+  {
+    "method": "GET",
+    "path": "/users"
+  },
+  {
+    "method": "POST",
+    "path": "/login"
+  },
+  {
+    "method": "DELETE",
+    "path": "/account/:id"
+  }
+]
