@@ -11,16 +11,16 @@ if (!inputPath || !outputPath) {
   process.exit(1);
 }
 
-// 1️⃣ Llegeix el fitxer d'entrada
+// Lectura de fitxer
 const code = fs.readFileSync(inputPath, "utf-8");
 
-// 2️⃣ Parseja el codi a AST
+// Parseja el codi a AST
 const ast = parser.parse(code, {
   sourceType: "module",
   plugins: ["jsx", "typescript"],
 });
 
-// 3️⃣ Analitza el codi i extreu rutes
+// Analisis del codi i extracció de les rutes
 const routes = [];
 
 traverse(ast, {
@@ -42,6 +42,6 @@ traverse(ast, {
   },
 });
 
-// 4️⃣ Escriu la sortida a fitxer JSON
+// Escritura a fitxer JSON
 fs.writeFileSync(outputPath, JSON.stringify(routes, null, 2));
 console.log(`✅ Rutes trobades i desades a ${outputPath}`);
