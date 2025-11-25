@@ -8,7 +8,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "parse": "node parser/extractRoutes.js examples/example1.js output/routes.json"
+    "parse": "node parser/extractRoutes.js examples/example1.js output/routes.json",
+    "jsdoc": "node parser/scanProject.js ./test-project output/routes.js jsdoc",
+    "parseproject": "node parser/scanProject.js ./test-project output/openapi.json jsdoc"
   },
   "repository": {
     "type": "git",
