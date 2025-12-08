@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>REST API Doc Generator</title>
+    <style>
+      body { font-family: sans-serif; margin: 20px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+      th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+      th { background: #f5f5f5; }
+      .btn { padding: 6px 12px; margin-right: 8px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <h1>REST API Doc Generator (MVP)</h1>
+
+    <button id="selectProjectBtn" class="btn">Seleccionar carpeta</button>
+    <button id="analyzeBtn" class="btn" disabled>Analizar</button>
+
+    <div style="margin-top: 16px;">
+      <label for="exportFormat">Formato exportación:</label>
+      <select id="exportFormat">
+        <option value="openapi">Swagger / OpenAPI</option>
+        <option value="jsdoc">JSDoc</option>
+      </select>
+      <button id="exportBtn" class="btn" disabled>Exportar</button>
+    </div>
+
+
+    <p>Proyecto seleccionado: <span id="projectPath">ninguno</span></p>
+
+    <table id="routesTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>Ruta</th>
+          <th>Fichero</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      const selectProjectBtn = document.getElementById("selectProjectBtn");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const projectPathSpan = document.getElementById("projectPath");
+      const routesTable = document.getElementById("routesTable");
+      const tbody = routesTable.querySelector("tbody");
+
+      const exportBtn = document.getElementById("exportBtn");
+      const exportFormatSelect = document.getElementById("exportFormat");
+
+      let currentProjectDir = null;
+
+      selectProjectBtn.addEventListener("click", async () => {
+        const dir = await window.api.selectProjectDir();
+        if (dir) {
+          currentProjectDir = dir;
+          projectPathSpan.textContent = dir;
+          analyzeBtn.disabled = false;
+          exportBtn.disabled = true;
+        }
+      });
+
+      analyzeBtn.addEventListener("click", async () => {
+        if (!currentProjectDir) return;
+
+        const result = await window.api.analyzeProject(currentProjectDir);
+        if (result.error) {
+          alert("Error: " + result.error);
+          return;
+        }
+
+        const routes = result.routes || [];
+        tbody.innerHTML = "";
+
+        routes.forEach((route) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${route.method}</td>
+            <td>${route.path}</td>
+            <td>${route.file}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        routesTable.style.display = routes.length ? "table" : "none";
+
+        exportBtn.disabled = routes.length === 0;
+      });
+
+      exportBtn.addEventListener("click", async () => {
+        const format = exportFormatSelect.value;
+        const res = await window.api.exportDoc(format);
+
+        if (res?.error) {
+          alert("Error al exportar: " + res.error);
+          return;
+        }
+        if (!res?.canceled) {
+          alert("Exportado correctamente en:\n" + res.filePath);
+        }
+      });
+    </script>
+  </body>
+</html>
