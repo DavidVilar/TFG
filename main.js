@@ -1,6 +1,9 @@
 const fs = require("fs");
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const os = require("os");
 const path = require("path");
+const simpleGit = require("simple-git");
+const { Octokit } = require("@octokit/rest");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const {
   analyzeProject,
   buildOpenApiDocFromRoutes,
@@ -8,6 +11,10 @@ const {
 } = require("./core/analyzer");
 
 let lastProjectAnalysis = null;
+
+let githubToken = null;
+let octokit = null;
+
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -112,6 +119,75 @@ ipcMain.handle("export-doc", async (_event, { format }) => {
     return { canceled: false, filePath };
   } catch (e) {
     console.error(e);
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle("github-set-token", async (_event, token) => {
+  try {
+    githubToken = token;
+    octokit = new Octokit({ auth: token });
+
+    const { data } = await octokit.rest.users.getAuthenticated();
+    return { ok: true, login: data.login };
+  } catch (e) {
+    console.error("Error validant token GitHub:", e.message);
+    githubToken = null;
+    octokit = null;
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle("github-list-repos", async () => {
+  if (!octokit) {
+    return { error: "No hi ha cap token de GitHub configurat." };
+  }
+  try {
+    const res = await octokit.rest.repos.listForAuthenticatedUser({
+      per_page: 100,
+      sort: "updated",
+    });
+    const repos = res.data.map((r) => ({
+      full_name: r.full_name,
+      clone_url: r.clone_url,
+      private: r.private,
+    }));
+    return { repos };
+  } catch (e) {
+    console.error("Error llistant repos:", e.message);
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle("github-analyze-repo", async (_event, { fullName }) => {
+  if (!octokit) {
+    return { error: "GitHub no configurat." };
+  }
+
+  try {
+    const baseTmpDir = path.join(os.tmpdir(), "tfg-docgen");
+    if (!fs.existsSync(baseTmpDir)) fs.mkdirSync(baseTmpDir, { recursive: true });
+
+    const localDir = path.join(
+      baseTmpDir,
+      fullName.replace("/", "_")
+    );
+
+    const git = simpleGit();
+
+    const cloneUrl = `https://github.com/${fullName}.git`;
+
+    if (!fs.existsSync(localDir)) {
+      await git.clone(cloneUrl, localDir);
+    } else {
+      await simpleGit({ baseDir: localDir }).pull();
+    }
+
+    const result = analyzeProject(localDir);
+    lastProjectAnalysis = result;
+    return result;
+  } catch (e) {
+    console.error("Error analitzant repo GitHub:", e);
     return { error: e.message };
   }
 });

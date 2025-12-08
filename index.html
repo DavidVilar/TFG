@@ -9,11 +9,13 @@
       th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
       th { background: #f5f5f5; }
       .btn { padding: 6px 12px; margin-right: 8px; cursor: pointer; }
+      input, select { padding: 6px; }
     </style>
   </head>
   <body>
     <h1>REST API Doc Generator (MVP)</h1>
 
+    <h2>Proyecto local</h2>
     <button id="selectProjectBtn" class="btn">Seleccionar carpeta</button>
     <button id="analyzeBtn" class="btn" disabled>Analizar</button>
 
@@ -26,8 +28,23 @@
       <button id="exportBtn" class="btn" disabled>Exportar</button>
     </div>
 
-
     <p>Proyecto seleccionado: <span id="projectPath">ninguno</span></p>
+
+    <h2>GitHub</h2>
+    <div style="margin-bottom: 8px;">
+      <label>Token personal de GitHub:</label>
+      <input type="password" id="githubToken" style="width: 300px;" />
+      <button id="githubSaveTokenBtn" class="btn">Guardar y probar</button>
+      <span id="githubStatus"></span>
+    </div>
+
+    <div style="margin-bottom: 8px;">
+      <button id="githubLoadReposBtn" class="btn" disabled>Listar repos</button>
+      <select id="githubReposSelect" style="min-width: 300px;" disabled>
+        <option value="">-- selecciona repo --</option>
+      </select>
+      <button id="githubAnalyzeRepoBtn" class="btn" disabled>Analizar repo</button>
+    </div>
 
     <table id="routesTable" style="display:none;">
       <thead>
@@ -50,6 +67,13 @@
       const exportBtn = document.getElementById("exportBtn");
       const exportFormatSelect = document.getElementById("exportFormat");
 
+      const githubTokenInput = document.getElementById("githubToken");
+      const githubSaveTokenBtn = document.getElementById("githubSaveTokenBtn");
+      const githubStatus = document.getElementById("githubStatus");
+      const githubLoadReposBtn = document.getElementById("githubLoadReposBtn");
+      const githubReposSelect = document.getElementById("githubReposSelect");
+      const githubAnalyzeRepoBtn = document.getElementById("githubAnalyzeRepoBtn");
+
       let currentProjectDir = null;
 
       selectProjectBtn.addEventListener("click", async () => {
@@ -64,16 +88,13 @@
 
       analyzeBtn.addEventListener("click", async () => {
         if (!currentProjectDir) return;
-
         const result = await window.api.analyzeProject(currentProjectDir);
         if (result.error) {
           alert("Error: " + result.error);
           return;
         }
-
         const routes = result.routes || [];
         tbody.innerHTML = "";
-
         routes.forEach((route) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -83,16 +104,13 @@
           `;
           tbody.appendChild(tr);
         });
-
         routesTable.style.display = routes.length ? "table" : "none";
-
         exportBtn.disabled = routes.length === 0;
       });
 
       exportBtn.addEventListener("click", async () => {
         const format = exportFormatSelect.value;
         const res = await window.api.exportDoc(format);
-
         if (res?.error) {
           alert("Error al exportar: " + res.error);
           return;
@@ -100,6 +118,70 @@
         if (!res?.canceled) {
           alert("Exportado correctamente en:\n" + res.filePath);
         }
+      });
+
+      githubSaveTokenBtn.addEventListener("click", async () => {
+        const token = githubTokenInput.value.trim();
+        if (!token) {
+          alert("Introduce un token de GitHub");
+          return;
+        }
+        githubStatus.textContent = "Comprobando...";
+        const res = await window.api.githubSetToken(token);
+        if (res.ok) {
+          githubStatus.textContent = `Conectado como ${res.login}`;
+          githubLoadReposBtn.disabled = false;
+        } else {
+          githubStatus.textContent = "Error: " + res.error;
+          githubLoadReposBtn.disabled = true;
+          githubReposSelect.disabled = true;
+          githubAnalyzeRepoBtn.disabled = true;
+        }
+      });
+
+      githubLoadReposBtn.addEventListener("click", async () => {
+        const res = await window.api.githubListRepos();
+        if (res.error) {
+          alert("Error listando repos: " + res.error);
+          return;
+        }
+        githubReposSelect.innerHTML =
+          '<option value="">-- selecciona repo --</option>';
+        res.repos.forEach((r) => {
+          const opt = document.createElement("option");
+          opt.value = r.full_name;
+          opt.textContent = r.full_name + (r.private ? " (privado)" : "");
+          githubReposSelect.appendChild(opt);
+        });
+        githubReposSelect.disabled = false;
+        githubAnalyzeRepoBtn.disabled = false;
+      });
+
+      githubAnalyzeRepoBtn.addEventListener("click", async () => {
+        const fullName = githubReposSelect.value;
+        if (!fullName) {
+          alert("Selecciona un repo");
+          return;
+        }
+        const result = await window.api.githubAnalyzeRepo(fullName);
+        if (result.error) {
+          alert("Error analizando repo: " + result.error);
+          return;
+        }
+        const routes = result.routes || [];
+        tbody.innerHTML = "";
+        routes.forEach((route) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${route.method}</td>
+            <td>${route.path}</td>
+            <td>${route.file}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        routesTable.style.display = routes.length ? "table" : "none";
+        exportBtn.disabled = routes.length === 0;
+        projectPathSpan.textContent = `GitHub: ${fullName}`;
       });
     </script>
   </body>
