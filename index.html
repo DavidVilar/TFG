@@ -2,70 +2,254 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>REST API Doc Generator</title>
-    <style>
-      body { font-family: sans-serif; margin: 20px; }
-      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-      th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-      th { background: #f5f5f5; }
-      .btn { padding: 6px 12px; margin-right: 8px; cursor: pointer; }
-      input, select { padding: 6px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AutRest</title>
+
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <h1>REST API Doc Generator (MVP)</h1>
+    <div class="app">
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div class="brand">
+            <div class="logo">API</div>
+            <div style="min-width:0">
+              <h1>AutRest</h1>
+              <p class="sub">Static analysis</p>
+            </div>
+          </div>
+          <div class="actions">
+            <div id="activeSourcePill" class="pill">
+              <span class="dot"></span>
+              <span id="activeSourceText">Selecciona un origen para comenzar</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <h2>Proyecto local</h2>
-    <button id="selectProjectBtn" class="btn">Seleccionar carpeta</button>
-    <button id="analyzeBtn" class="btn" disabled>Analizar</button>
+      <div class="container">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h2>Origen del proyecto</h2>
+              <p class="hint">Elige de dónde importar el código a analizar</p>
+            </div>
+            <div class="tabs">
+              <button id="tabLocal" class="tab active">Local</button>
+              <button id="tabGithub" class="tab">GitHub</button>
+            </div>
+          </div>
 
-    <div style="margin-top: 16px;">
-      <label for="exportFormat">Formato exportación:</label>
-      <select id="exportFormat">
-        <option value="openapi">Swagger / OpenAPI</option>
-        <option value="jsdoc">JSDoc</option>
-      </select>
-      <button id="exportBtn" class="btn" disabled>Exportar</button>
+          <div class="card-b">
+            <div id="panelLocal">
+              <div class="grid two">
+                <div class="card" style="box-shadow:none">
+                  <div class="card-h">
+                    <h2>Proyecto local</h2>
+                    <p class="hint">Selecciona una carpeta del proyecto</p>
+                  </div>
+                  <div class="card-b">
+                    <div class="row">
+                      <button id="selectProjectBtn" class="btn">Seleccionar carpeta</button>
+                      <button id="analyzeLocalBtn" class="btn primary" disabled>Analizar</button>
+                    </div>
+                    <div class="row" style="margin-top:12px">
+                      <div class="status">
+                        <span id="localDot" class="dot"></span>
+                        <span>Proyecto:</span>
+                        <span id="projectPathLocal" class="mono">ninguno</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card" style="box-shadow:none">
+                  <div class="card-h">
+                    <h2>Exportación</h2>
+                    <p class="hint">Genera documentación desde el último análisis</p>
+                  </div>
+                  <div class="card-b">
+                    <div class="row fill">
+                      <div class="field">
+                        <label for="exportFormatLocal">Formato</label>
+                        <select id="exportFormatLocal">
+                          <option value="openapi">Swagger / OpenAPI</option>
+                          <option value="jsdoc">JSDoc</option>
+                        </select>
+                      </div>
+                      <div class="field" style="flex:0 0 160px; min-width:160px">
+                        <label>&nbsp;</label>
+                        <button id="exportBtnLocal" class="btn" disabled>Exportar</button>
+                      </div>
+                    </div>
+                    <div class="status" style="margin-top:10px">
+                      <span class="dot"></span>
+                      <span>Nota:</span>
+                      <span>Exporta el último proyecto analizado (local o GitHub).</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:14px; box-shadow:none">
+                <div class="card-h">
+                  <div>
+                    <h2>Rutas detectadas</h2>
+                    <p class="hint">Listado de endpoints extraídos</p>
+                  </div>
+                  <div class="status">
+                    <span id="localCountDot" class="dot"></span>
+                    <span id="localCountText">0 rutas</span>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table id="routesTableLocal" style="display:none;">
+                    <thead>
+                      <tr>
+                        <th>Método</th>
+                        <th>Ruta</th>
+                        <th>Fichero</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div id="panelGithub" style="display:none">
+              <div class="grid two">
+                <div class="card" style="box-shadow:none">
+                  <div class="card-h">
+                    <h2>Conexión GitHub</h2>
+                    <p class="hint">Token + selección de repositorio</p>
+                  </div>
+                  <div class="card-b">
+                    <div class="row fill">
+                      <div class="field">
+                        <label for="githubToken">Token personal</label>
+                        <input type="password" id="githubToken" placeholder="ghp_..." />
+                      </div>
+                      <div class="field" style="flex:0 0 190px; min-width:190px">
+                        <label>&nbsp;</label>
+                        <button id="githubSaveTokenBtn" class="btn">Guardar y probar</button>
+                      </div>
+                    </div>
+
+                    <div class="row" style="margin-top:10px">
+                      <div class="status">
+                        <span id="githubDot" class="dot"></span>
+                        <span id="githubStatus">Sin conectar</span>
+                      </div>
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
+                      <div class="field">
+                        <label for="githubReposSelect">Repositorio</label>
+                        <select id="githubReposSelect" disabled>
+                          <option value="">-- selecciona repo --</option>
+                        </select>
+                      </div>
+                      <div class="field" style="flex:0 0 170px; min-width:170px">
+                        <label>&nbsp;</label>
+                        <button id="githubLoadReposBtn" class="btn" disabled>Listar repos</button>
+                      </div>
+                      <div class="field" style="flex:0 0 170px; min-width:170px">
+                        <label>&nbsp;</label>
+                        <button id="githubAnalyzeRepoBtn" class="btn primary" disabled>Analizar repo</button>
+                      </div>
+                    </div>
+
+                    <div class="row" style="margin-top:10px">
+                      <div class="status">
+                        <span class="dot"></span>
+                        <span>Proyecto:</span>
+                        <span id="projectPathGithub" class="mono">ninguno</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card" style="box-shadow:none">
+                  <div class="card-h">
+                    <h2>Exportación</h2>
+                    <p class="hint">Genera documentación desde el último análisis</p>
+                  </div>
+                  <div class="card-b">
+                    <div class="row fill">
+                      <div class="field">
+                        <label for="exportFormatGithub">Formato</label>
+                        <select id="exportFormatGithub">
+                          <option value="openapi">Swagger / OpenAPI</option>
+                          <option value="jsdoc">JSDoc</option>
+                        </select>
+                      </div>
+                      <div class="field" style="flex:0 0 160px; min-width:160px">
+                        <label>&nbsp;</label>
+                        <button id="exportBtnGithub" class="btn" disabled>Exportar</button>
+                      </div>
+                    </div>
+                    <div class="status" style="margin-top:10px">
+                      <span class="dot"></span>
+                      <span>Nota:</span>
+                      <span>Exporta el último proyecto analizado (local o GitHub).</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:14px; box-shadow:none">
+                <div class="card-h">
+                  <div>
+                    <h2>Rutas detectadas</h2>
+                    <p class="hint">Listado de endpoints extraídos</p>
+                  </div>
+                  <div class="status">
+                    <span id="githubCountDot" class="dot"></span>
+                    <span id="githubCountText">0 rutas</span>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table id="routesTableGithub" style="display:none;">
+                    <thead>
+                      <tr>
+                        <th>Método</th>
+                        <th>Ruta</th>
+                        <th>Fichero</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="footer-space"></div>
+      </div>
     </div>
-
-    <p>Proyecto seleccionado: <span id="projectPath">ninguno</span></p>
-
-    <h2>GitHub</h2>
-    <div style="margin-bottom: 8px;">
-      <label>Token personal de GitHub:</label>
-      <input type="password" id="githubToken" style="width: 300px;" />
-      <button id="githubSaveTokenBtn" class="btn">Guardar y probar</button>
-      <span id="githubStatus"></span>
-    </div>
-
-    <div style="margin-bottom: 8px;">
-      <button id="githubLoadReposBtn" class="btn" disabled>Listar repos</button>
-      <select id="githubReposSelect" style="min-width: 300px;" disabled>
-        <option value="">-- selecciona repo --</option>
-      </select>
-      <button id="githubAnalyzeRepoBtn" class="btn" disabled>Analizar repo</button>
-    </div>
-
-    <table id="routesTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>Método</th>
-          <th>Ruta</th>
-          <th>Fichero</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
 
     <script>
-      const selectProjectBtn = document.getElementById("selectProjectBtn");
-      const analyzeBtn = document.getElementById("analyzeBtn");
-      const projectPathSpan = document.getElementById("projectPath");
-      const routesTable = document.getElementById("routesTable");
-      const tbody = routesTable.querySelector("tbody");
+      const tabLocal = document.getElementById("tabLocal");
+      const tabGithub = document.getElementById("tabGithub");
+      const panelLocal = document.getElementById("panelLocal");
+      const panelGithub = document.getElementById("panelGithub");
 
-      const exportBtn = document.getElementById("exportBtn");
-      const exportFormatSelect = document.getElementById("exportFormat");
+      const activeSourcePill = document.getElementById("activeSourcePill");
+      const activeSourceText = document.getElementById("activeSourceText");
+
+      const selectProjectBtn = document.getElementById("selectProjectBtn");
+      const analyzeLocalBtn = document.getElementById("analyzeLocalBtn");
+      const projectPathLocal = document.getElementById("projectPathLocal");
+      const routesTableLocal = document.getElementById("routesTableLocal");
+      const tbodyLocal = routesTableLocal.querySelector("tbody");
+      const exportBtnLocal = document.getElementById("exportBtnLocal");
+      const exportFormatLocal = document.getElementById("exportFormatLocal");
+      const localDot = document.getElementById("localDot");
+      const localCountDot = document.getElementById("localCountDot");
+      const localCountText = document.getElementById("localCountText");
 
       const githubTokenInput = document.getElementById("githubToken");
       const githubSaveTokenBtn = document.getElementById("githubSaveTokenBtn");
@@ -73,43 +257,122 @@
       const githubLoadReposBtn = document.getElementById("githubLoadReposBtn");
       const githubReposSelect = document.getElementById("githubReposSelect");
       const githubAnalyzeRepoBtn = document.getElementById("githubAnalyzeRepoBtn");
+      const projectPathGithub = document.getElementById("projectPathGithub");
+      const routesTableGithub = document.getElementById("routesTableGithub");
+      const tbodyGithub = routesTableGithub.querySelector("tbody");
+      const exportBtnGithub = document.getElementById("exportBtnGithub");
+      const exportFormatGithub = document.getElementById("exportFormatGithub");
+      const githubDot = document.getElementById("githubDot");
+      const githubCountDot = document.getElementById("githubCountDot");
+      const githubCountText = document.getElementById("githubCountText");
 
       let currentProjectDir = null;
+
+      function setActiveSource(text) {
+        activeSourceText.textContent = text;
+      }
+
+      function setDot(dotEl, state) {
+        dotEl.classList.remove("good","bad","warn");
+        if (state) dotEl.classList.add(state);
+      }
+
+      function renderRoutes(tbody, table, routes, countTextEl, countDotEl) {
+        tbody.innerHTML = "";
+        routes.forEach((route) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><span class="method">${route.method}</span></td>
+            <td class="mono">${route.path}</td>
+            <td class="mono">${route.file}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        table.style.display = routes.length ? "table" : "none";
+        if (countTextEl) countTextEl.textContent = `${routes.length} rutas`;
+        if (countDotEl) setDot(countDotEl, routes.length ? "good" : "warn");
+      }
+
+      function setTab(which) {
+        const isLocal = which === "local";
+        tabLocal.classList.toggle("active", isLocal);
+        tabGithub.classList.toggle("active", !isLocal);
+        panelLocal.style.display = isLocal ? "" : "none";
+        panelGithub.style.display = isLocal ? "none" : "";
+        setActiveSource(isLocal ? "Modo local" : "Modo GitHub");
+      }
+
+      tabLocal.addEventListener("click", () => setTab("local"));
+      tabGithub.addEventListener("click", () => setTab("github"));
+
+      async function initSettings() {
+        const s = await window.api.settingsLoad();
+
+        if (s?.githubToken) {
+          githubTokenInput.value = s.githubToken;
+          githubStatus.textContent = "Token cargado (pulsa Guardar y probar)";
+          setDot(githubDot, "warn");
+        } else {
+          githubStatus.textContent = "Sin conectar";
+          setDot(githubDot, null);
+        }
+
+        if (s?.lastLocalProjectDir) {
+          currentProjectDir = s.lastLocalProjectDir;
+          projectPathLocal.textContent = s.lastLocalProjectDir;
+          analyzeLocalBtn.disabled = false;
+          setDot(localDot, "warn");
+          setActiveSource("Modo local (proyecto cargado)");
+        } else {
+          projectPathLocal.textContent = "ninguno";
+          analyzeLocalBtn.disabled = true;
+          setDot(localDot, null);
+        }
+
+        if (s?.lastGithubRepo) {
+          projectPathGithub.textContent = `GitHub: ${s.lastGithubRepo}`;
+        } else {
+          projectPathGithub.textContent = "ninguno";
+        }
+
+        renderRoutes(tbodyLocal, routesTableLocal, [], localCountText, localCountDot);
+        renderRoutes(tbodyGithub, routesTableGithub, [], githubCountText, githubCountDot);
+      }
 
       selectProjectBtn.addEventListener("click", async () => {
         const dir = await window.api.selectProjectDir();
         if (dir) {
           currentProjectDir = dir;
-          projectPathSpan.textContent = dir;
-          analyzeBtn.disabled = false;
-          exportBtn.disabled = true;
+          projectPathLocal.textContent = dir;
+          analyzeLocalBtn.disabled = false;
+          exportBtnLocal.disabled = true;
+          routesTableLocal.style.display = "none";
+          setDot(localDot, "warn");
+          setActiveSource("Modo local (carpeta seleccionada)");
+          await window.api.settingsSave({ lastLocalProjectDir: dir });
         }
       });
 
-      analyzeBtn.addEventListener("click", async () => {
+      analyzeLocalBtn.addEventListener("click", async () => {
         if (!currentProjectDir) return;
+        setDot(localDot, "warn");
+        setActiveSource("Analizando proyecto local...");
         const result = await window.api.analyzeProject(currentProjectDir);
         if (result.error) {
           alert("Error: " + result.error);
+          setDot(localDot, "bad");
+          setActiveSource("Error en análisis local");
           return;
         }
         const routes = result.routes || [];
-        tbody.innerHTML = "";
-        routes.forEach((route) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${route.method}</td>
-            <td>${route.path}</td>
-            <td>${route.file}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        routesTable.style.display = routes.length ? "table" : "none";
-        exportBtn.disabled = routes.length === 0;
+        renderRoutes(tbodyLocal, routesTableLocal, routes, localCountText, localCountDot);
+        exportBtnLocal.disabled = routes.length === 0;
+        setDot(localDot, routes.length ? "good" : "warn");
+        setActiveSource(`Local analizado (${routes.length} rutas)`);
       });
 
-      exportBtn.addEventListener("click", async () => {
-        const format = exportFormatSelect.value;
+      exportBtnLocal.addEventListener("click", async () => {
+        const format = exportFormatLocal.value;
         const res = await window.api.exportDoc(format);
         if (res?.error) {
           alert("Error al exportar: " + res.error);
@@ -127,15 +390,21 @@
           return;
         }
         githubStatus.textContent = "Comprobando...";
+        setDot(githubDot, "warn");
         const res = await window.api.githubSetToken(token);
         if (res.ok) {
           githubStatus.textContent = `Conectado como ${res.login}`;
+          setDot(githubDot, "good");
           githubLoadReposBtn.disabled = false;
+          await window.api.settingsSave({ githubToken: token });
+          setActiveSource("Modo GitHub (conectado)");
         } else {
           githubStatus.textContent = "Error: " + res.error;
+          setDot(githubDot, "bad");
           githubLoadReposBtn.disabled = true;
           githubReposSelect.disabled = true;
           githubAnalyzeRepoBtn.disabled = true;
+          setActiveSource("Error en conexión GitHub");
         }
       });
 
@@ -145,8 +414,7 @@
           alert("Error listando repos: " + res.error);
           return;
         }
-        githubReposSelect.innerHTML =
-          '<option value="">-- selecciona repo --</option>';
+        githubReposSelect.innerHTML = '<option value="">-- selecciona repo --</option>';
         res.repos.forEach((r) => {
           const opt = document.createElement("option");
           opt.value = r.full_name;
@@ -155,6 +423,7 @@
         });
         githubReposSelect.disabled = false;
         githubAnalyzeRepoBtn.disabled = false;
+        setActiveSource("Modo GitHub (repos cargados)");
       });
 
       githubAnalyzeRepoBtn.addEventListener("click", async () => {
@@ -163,26 +432,35 @@
           alert("Selecciona un repo");
           return;
         }
+        setActiveSource("Clonando/actualizando repo y analizando...");
         const result = await window.api.githubAnalyzeRepo(fullName);
         if (result.error) {
           alert("Error analizando repo: " + result.error);
+          setActiveSource("Error en análisis GitHub");
           return;
         }
         const routes = result.routes || [];
-        tbody.innerHTML = "";
-        routes.forEach((route) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${route.method}</td>
-            <td>${route.path}</td>
-            <td>${route.file}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        routesTable.style.display = routes.length ? "table" : "none";
-        exportBtn.disabled = routes.length === 0;
-        projectPathSpan.textContent = `GitHub: ${fullName}`;
+        renderRoutes(tbodyGithub, routesTableGithub, routes, githubCountText, githubCountDot);
+        exportBtnGithub.disabled = routes.length === 0;
+        projectPathGithub.textContent = `GitHub: ${fullName}`;
+        await window.api.settingsSave({ lastGithubRepo: fullName });
+        setActiveSource(`GitHub analizado (${routes.length} rutas)`);
       });
+
+      exportBtnGithub.addEventListener("click", async () => {
+        const format = exportFormatGithub.value;
+        const res = await window.api.exportDoc(format);
+        if (res?.error) {
+          alert("Error al exportar: " + res.error);
+          return;
+        }
+        if (!res?.canceled) {
+          alert("Exportado correctamente en:\n" + res.filePath);
+        }
+      });
+
+      setTab("local");
+      initSettings();
     </script>
   </body>
 </html>

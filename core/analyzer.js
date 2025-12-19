@@ -1,15 +1,12 @@
 const fs = require("fs");
 const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
-
 const path = require("path");
 
 function evaluateToString(node, env) {
   if (!node) return null;
 
-  if (node.type === "StringLiteral") {
-    return node.value;
-  }
+  if (node.type === "StringLiteral") return node.value;
 
   if (node.type === "Identifier") {
     return typeof env[node.name] === "string" ? env[node.name] : null;
@@ -18,9 +15,7 @@ function evaluateToString(node, env) {
   if (node.type === "BinaryExpression" && node.operator === "+") {
     const left = evaluateToString(node.left, env);
     const right = evaluateToString(node.right, env);
-    if (typeof left === "string" && typeof right === "string") {
-      return left + right;
-    }
+    if (typeof left === "string" && typeof right === "string") return left + right;
     return null;
   }
 
@@ -43,18 +38,214 @@ function evaluateToString(node, env) {
 function buildStringEnv(ast) {
   const env = {};
   traverse(ast, {
-    VariableDeclarator(path) {
-      if (path.node.id.type !== "Identifier") return;
-      const name = path.node.id.name;
-      const init = path.node.init;
+    VariableDeclarator(p) {
+      if (p.node.id.type !== "Identifier") return;
+      const name = p.node.id.name;
+      const init = p.node.init;
       const val = evaluateToString(init, env);
-      if (typeof val === "string") {
-        env[name] = val;
-      }
+      if (typeof val === "string") env[name] = val;
     },
   });
   return env;
 }
+
+
+function isHttpRouteCall(callee) {
+  return (
+    callee &&
+    callee.type === "MemberExpression" &&
+    callee.property &&
+    callee.property.type === "Identifier" &&
+    ["get", "post", "put", "delete", "patch"].includes(callee.property.name)
+  );
+}
+
+function nodeToName(node) {
+  if (!node) return null;
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "MemberExpression") {
+    const obj = nodeToName(node.object);
+    const prop =
+      node.property?.type === "Identifier"
+        ? node.property.name
+        : node.property?.type === "StringLiteral"
+          ? node.property.value
+          : null;
+    if (obj && prop) return `${obj}.${prop}`;
+    return null;
+  }
+  return null;
+}
+
+function getHandlerFunctionsFromArgs(args) {
+  const handlers = [];
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i];
+    if (
+      a &&
+      (a.type === "FunctionExpression" ||
+        a.type === "ArrowFunctionExpression")
+    ) {
+      handlers.push(a);
+    }
+  }
+  return handlers;
+}
+
+function getMiddlewaresFromArgs(args) {
+  const mids = [];
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i];
+    const isInlineFn =
+      a &&
+      (a.type === "FunctionExpression" || a.type === "ArrowFunctionExpression");
+
+    if (isInlineFn) continue;
+
+    if (a.type === "CallExpression") {
+      const calleeName = nodeToName(a.callee);
+      mids.push(calleeName ? `${calleeName}()` : "anonymousCall()");
+    } else {
+      const name = nodeToName(a);
+      if (name) mids.push(name);
+    }
+  }
+  return mids;
+}
+
+function collectReqResInsights(handlerFn) {
+  const queryParams = new Set();
+  const bodyParams = new Set();
+  const statusCodes = new Set();
+
+  if (!handlerFn) {
+    return {
+      queryParams: [],
+      bodyParams: [],
+      responses: ["200"],
+    };
+  }
+
+  const paramNames = handlerFn.params || [];
+  const reqName =
+    paramNames[0]?.type === "Identifier" ? paramNames[0].name : "req";
+  const resName =
+    paramNames[1]?.type === "Identifier" ? paramNames[1].name : "res";
+
+  const bodyNode =
+    handlerFn.body?.type === "BlockStatement"
+      ? handlerFn.body
+      : null;
+
+  if (!bodyNode) {
+    return {
+      queryParams: [],
+      bodyParams: [],
+      responses: ["200"],
+    };
+  }
+
+  traverse(
+    { type: "File", program: { type: "Program", body: [bodyNode] } },
+    {
+      MemberExpression(p) {
+        const n = p.node;
+
+        if (
+          n.object &&
+          n.object.type === "MemberExpression" &&
+          n.object.object?.type === "Identifier" &&
+          n.object.object.name === reqName &&
+          n.object.property?.type === "Identifier" &&
+          n.object.property.name === "query"
+        ) {
+          if (n.property?.type === "Identifier") queryParams.add(n.property.name);
+          if (n.property?.type === "StringLiteral") queryParams.add(n.property.value);
+        }
+
+        if (
+          n.object &&
+          n.object.type === "MemberExpression" &&
+          n.object.object?.type === "Identifier" &&
+          n.object.object.name === reqName &&
+          n.object.property?.type === "Identifier" &&
+          n.object.property.name === "body"
+        ) {
+          if (n.property?.type === "Identifier") bodyParams.add(n.property.name);
+          if (n.property?.type === "StringLiteral") bodyParams.add(n.property.value);
+        }
+      },
+
+      VariableDeclarator(p) {
+        const n = p.node;
+        if (n.id?.type !== "ObjectPattern") return;
+
+        if (
+          n.init?.type === "MemberExpression" &&
+          n.init.object?.type === "Identifier" &&
+          n.init.object.name === reqName &&
+          n.init.property?.type === "Identifier" &&
+          (n.init.property.name === "query" || n.init.property.name === "body")
+        ) {
+          const target = n.init.property.name;
+          for (const prop of n.id.properties) {
+            if (prop.type === "ObjectProperty") {
+              const key = prop.key;
+              const keyName =
+                key.type === "Identifier"
+                  ? key.name
+                  : key.type === "StringLiteral"
+                    ? key.value
+                    : null;
+              if (!keyName) continue;
+              if (target === "query") queryParams.add(keyName);
+              if (target === "body") bodyParams.add(keyName);
+            }
+          }
+        }
+      },
+
+      CallExpression(p) {
+        const n = p.node;
+
+        if (
+          n.callee?.type === "MemberExpression" &&
+          n.callee.object?.type === "Identifier" &&
+          n.callee.object.name === resName &&
+          n.callee.property?.type === "Identifier" &&
+          n.callee.property.name === "sendStatus"
+        ) {
+          const arg = n.arguments?.[0];
+          if (arg?.type === "NumericLiteral") statusCodes.add(String(arg.value));
+          else if (arg?.type === "StringLiteral") statusCodes.add(arg.value);
+        }
+
+        if (
+          n.callee?.type === "MemberExpression" &&
+          n.callee.object?.type === "Identifier" &&
+          n.callee.object.name === resName &&
+          n.callee.property?.type === "Identifier" &&
+          n.callee.property.name === "status"
+        ) {
+          const arg = n.arguments?.[0];
+          if (arg?.type === "NumericLiteral") statusCodes.add(String(arg.value));
+          else if (arg?.type === "StringLiteral") statusCodes.add(arg.value);
+        }
+      },
+    },
+    undefined,
+    undefined
+  );
+
+  const responses = statusCodes.size ? [...statusCodes] : ["200"];
+
+  return {
+    queryParams: [...queryParams],
+    bodyParams: [...bodyParams],
+    responses,
+  };
+}
+
 
 function extractRoutesFromCode(code) {
   const ast = parser.parse(code, {
@@ -66,39 +257,49 @@ function extractRoutesFromCode(code) {
   const routes = [];
 
   traverse(ast, {
-    CallExpression(path) {
-      const callee = path.node.callee;
+    CallExpression(p) {
+      const callee = p.node.callee;
 
-      if (
-        callee.type === "MemberExpression" &&
-        ["get", "post", "put", "delete", "patch"].includes(callee.property.name)
-      ) {
-        const args = path.node.arguments;
-        if (args.length === 0) return;
-        const rawArg = args[0];
+      if (!isHttpRouteCall(callee)) return;
 
-        const resolved = evaluateToString(rawArg, env);
-        if (typeof resolved === "string") {
-          routes.push({
-            method: callee.property.name.toUpperCase(),
-            path: resolved,
-          });
-        } else {
-          console.warn(
-            "Ruta no avaluada de manera estàtica:",
-            callee.property.name.toUpperCase(),
-            "argument tipus",
-            rawArg.type
-          );
-        }
+      const methodName = callee.property.name.toUpperCase();
+      const args = p.node.arguments;
+      if (!args.length) return;
+
+      const rawArg = args[0];
+      const resolved = evaluateToString(rawArg, env);
+
+      if (typeof resolved !== "string") {
+        console.warn(
+          "Ruta no avaluada de manera estàtica:",
+          methodName,
+          "argument tipus",
+          rawArg?.type
+        );
+        return;
       }
+
+      const middlewares = getMiddlewaresFromArgs(args);
+
+      const handlerFns = getHandlerFunctionsFromArgs(args);
+      const primaryHandler = handlerFns.length ? handlerFns[handlerFns.length - 1] : null;
+
+      const insights = collectReqResInsights(primaryHandler);
+
+      routes.push({
+        method: methodName,
+        path: resolved,
+        middlewares,
+        queryParams: insights.queryParams,
+        bodyParams: insights.bodyParams,
+        responses: insights.responses,
+      });
     },
   });
 
   return routes;
 }
 
-// Añade el campo file para poder saber de dónde viene cada ruta
 function extractRoutesFromFile(inputPath) {
   const code = fs.readFileSync(inputPath, "utf-8");
   const routes = extractRoutesFromCode(code);
@@ -108,7 +309,6 @@ function extractRoutesFromFile(inputPath) {
   }));
 }
 
-// Modelo simplificado para la futura interfaz gráfica (MVP)
 function analyzeFile(inputPath) {
   const routes = extractRoutesFromFile(inputPath);
   return {
@@ -117,6 +317,10 @@ function analyzeFile(inputPath) {
       method: route.method,
       path: route.path,
       file: route.file,
+      middlewares: route.middlewares || [],
+      queryParams: route.queryParams || [],
+      bodyParams: route.bodyParams || [],
+      responses: route.responses || ["200"],
     })),
   };
 }
@@ -140,7 +344,48 @@ function extractPathParams(p) {
   return params;
 }
 
-// Ahora acepta también un objeto options (como usas en scanProject)
+function buildQueryParams(route) {
+  const q = Array.isArray(route.queryParams) ? route.queryParams : [];
+  return q.map((name) => ({
+    name,
+    in: "query",
+    required: false,
+    schema: { type: "string" },
+  }));
+}
+
+function buildRequestBody(route) {
+  const b = Array.isArray(route.bodyParams) ? route.bodyParams : [];
+  if (!b.length) return null;
+
+  const properties = {};
+  for (const name of b) properties[name] = { type: "string" };
+
+  return {
+    required: false,
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties,
+        },
+      },
+    },
+  };
+}
+
+function buildResponses(route) {
+  const codes = Array.isArray(route.responses) && route.responses.length
+    ? route.responses
+    : ["200"];
+
+  const responses = {};
+  for (const code of codes) {
+    responses[String(code)] = { description: `HTTP ${code}` };
+  }
+  return responses;
+}
+
 function buildOpenApiDocFromRoutes(routes, options = {}) {
   const {
     title = "API generada automàticament",
@@ -151,10 +396,7 @@ function buildOpenApiDocFromRoutes(routes, options = {}) {
 
   const doc = {
     openapi: "3.0.3",
-    info: {
-      title,
-      version,
-    },
+    info: { title, version },
     servers: [{ url: serverUrl }],
     paths: {},
   };
@@ -163,19 +405,30 @@ function buildOpenApiDocFromRoutes(routes, options = {}) {
     const oapiPath = expressPathToOpenApiPath(route.path);
     const method = route.method.toLowerCase();
 
-    if (!doc.paths[oapiPath]) {
-      doc.paths[oapiPath] = {};
-    }
+    if (!doc.paths[oapiPath]) doc.paths[oapiPath] = {};
 
     const summary = `${route.method} ${route.path}`;
+
+    const parameters = [
+      ...extractPathParams(route.path),
+      ...buildQueryParams(route),
+    ];
+
     const op = {
       summary,
-      parameters: extractPathParams(route.path),
-      responses: { "200": { description: "OK" } },
+      parameters,
+      responses: buildResponses(route),
     };
 
+    const rb = buildRequestBody(route);
+    if (rb) op.requestBody = rb;
+
     if (descriptionByRouteFile && route.file) {
-      op.description = `Definit a ${route.file}`;
+      const midTxt =
+        route.middlewares && route.middlewares.length
+          ? `\nMiddlewares: ${route.middlewares.join(", ")}`
+          : "";
+      op.description = `Definit a ${route.file}${midTxt}`;
     }
 
     doc.paths[oapiPath][method] = op;
@@ -187,14 +440,26 @@ function buildOpenApiDocFromRoutes(routes, options = {}) {
 function buildJsdocFromRoutes(routes) {
   let out = "";
   for (const route of routes) {
-    const params = extractPathParams(route.path);
+    const pathParams = extractPathParams(route.path);
+    const queryParams = Array.isArray(route.queryParams) ? route.queryParams : [];
+    const bodyParams = Array.isArray(route.bodyParams) ? route.bodyParams : [];
+    const responses = Array.isArray(route.responses) && route.responses.length ? route.responses : ["200"];
+    const middlewares = Array.isArray(route.middlewares) ? route.middlewares : [];
+
     out += "/**\n";
     out += ` * @route ${route.method} ${route.path}\n`;
     out += ` * @summary ${route.method} ${route.path}\n`;
-    for (const p of params) {
-      out += ` * @param {string} ${p.name} path parameter\n`;
+    if (route.file) out += ` * @file ${route.file}\n`;
+    if (middlewares.length) out += ` * @middleware ${middlewares.join(", ")}\n`;
+
+    for (const p of pathParams) out += ` * @param {string} ${p.name} path parameter\n`;
+    for (const q of queryParams) out += ` * @param {string} ${q} query parameter\n`;
+    for (const b of bodyParams) out += ` * @param {string} ${b} body parameter\n`;
+
+    for (const code of responses) {
+      out += ` * @returns {object} ${code} - HTTP ${code}\n`;
     }
-    out += " * @returns {object} 200 - Successful response\n";
+
     out += " */\n\n";
   }
   return out;
@@ -203,7 +468,6 @@ function buildJsdocFromRoutes(routes) {
 function analyzeProject(projectRoot) {
   function collectSourceFiles(dir) {
     const files = [];
-
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const fullPath = path.join(dir, entry.name);
 
@@ -211,12 +475,9 @@ function analyzeProject(projectRoot) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         files.push(...collectSourceFiles(fullPath));
       } else if (entry.isFile()) {
-        if (fullPath.endsWith(".js") || fullPath.endsWith(".ts")) {
-          files.push(fullPath);
-        }
+        if (fullPath.endsWith(".js") || fullPath.endsWith(".ts")) files.push(fullPath);
       }
     }
-
     return files;
   }
 
@@ -230,7 +491,6 @@ function analyzeProject(projectRoot) {
   const candidateFiles = allSourceFiles.filter(fileLooksLikeApi);
 
   let routes = [];
-
   for (const file of candidateFiles) {
     const fileRoutes = extractRoutesFromFile(file);
     const withRelFile = fileRoutes.map((r) => ({

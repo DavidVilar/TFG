@@ -10,6 +10,61 @@
     }
   ],
   "paths": {
+    "/users": {
+      "get": {
+        "summary": "GET /users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Definit a test-project\\routes\\users.js"
+      },
+      "post": {
+        "summary": "POST /users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Definit a test-project\\routes\\users.js"
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "POST /login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Definit a examples\\example1.js"
+      }
+    },
+    "/account/{id}": {
+      "delete": {
+        "summary": "DELETE /account/:id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Definit a examples\\example1.js"
+      }
+    },
     "/status": {
       "get": {
         "summary": "GET /status",
@@ -19,7 +74,7 @@
             "description": "OK"
           }
         },
-        "description": "Definit a index.js"
+        "description": "Definit a test-project\\index.js"
       }
     },
     "/admin/dashboard": {
@@ -31,29 +86,7 @@
             "description": "OK"
           }
         },
-        "description": "Definit a routes\\admin.js"
-      }
-    },
-    "/users": {
-      "get": {
-        "summary": "GET /users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      },
-      "post": {
-        "summary": "POST /users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
+        "description": "Definit a test-project\\routes\\admin.js"
       }
     },
     "/users/{id}": {
@@ -74,7 +107,7 @@
             "description": "OK"
           }
         },
-        "description": "Definit a routes\\users.js"
+        "description": "Definit a test-project\\routes\\users.js"
       },
       "delete": {
         "summary": "DELETE /users/:id",
@@ -93,85 +126,7 @@
             "description": "OK"
           }
         },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/users": {
-      "get": {
-        "summary": "GET /api/users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/users/{id}": {
-      "get": {
-        "summary": "GET /api/users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/v1/users": {
-      "get": {
-        "summary": "GET /v1/users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/v1/users/{id}": {
-      "get": {
-        "summary": "GET /v1/users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/v1/users/nested": {
-      "get": {
-        "summary": "GET /api/v1/users/nested",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a routes\\users.js"
+        "description": "Definit a test-project\\routes\\users.js"
       }
     }
   }
