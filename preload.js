@@ -9,6 +9,6 @@ contextBridge.exposeInMainWorld("api", {
 
   githubSetToken: (token) => ipcRenderer.invoke("github-set-token", token),
   githubListRepos: () => ipcRenderer.invoke("github-list-repos"),
-  githubAnalyzeRepo: (fullName) =>
-    ipcRenderer.invoke("github-analyze-repo", { fullName }),
+  githubListBranches: (fullName) => ipcRenderer.invoke("github-list-branches", fullName),
+  githubAnalyzeRepo: (fullName, branch) => ipcRenderer.invoke("github-analyze-repo", { fullName, branch }),
 });

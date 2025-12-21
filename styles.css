@@ -23,12 +23,31 @@ body{
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
   color:var(--text);
 
-  /* clave: el body NO scrollea */
   overflow: hidden;
   background: var(--bg);
 }
 
-/* clave: el scroll lo hace la app */
+select {
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+select:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+select option:checked {
+  background-color: #eaeaea !important;
+  color: #000000 !important;
+}
+
 .app{
   height:100vh;
   overflow-y:auto;
@@ -38,7 +57,6 @@ body{
   position:relative;
 }
 
-/* clave: fondo fijo único, no se “duplica” al scrollear */
 .app::before{
   content:"";
   position: fixed;
@@ -283,14 +301,16 @@ input:focus, select:focus{
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,.02);
+  background: rgba(255, 255, 255, 0.02);
   cursor:pointer;
   font-size: 13px;
+  color: #ffffff;
 }
 
 .tab.active{
   border-color: rgba(106,167,255,.55);
   background: rgba(106,167,255,.10);
+  color: #ffffff;
 }
 
 .table-wrap{
@@ -321,6 +341,21 @@ th{
   z-index:2;
   color: var(--muted);
   font-weight:600;
+}
+
+textarea{
+  width:100%;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+}
+textarea:focus{
+  border-color: rgba(106,167,255,.55);
+  box-shadow: 0 0 0 4px rgba(106,167,255,.12);
 }
 
 .method{

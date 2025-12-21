@@ -45,13 +45,46 @@
               <div class="grid two">
                 <div class="card" style="box-shadow:none">
                   <div class="card-h">
-                    <h2>Proyecto local</h2>
-                    <p class="hint">Selecciona una carpeta del proyecto</p>
+                    <div>
+                      <h2>Proyecto local</h2>
+                      <p class="hint">Selecciona una carpeta del proyecto</p>
+                    </div>
                   </div>
+
                   <div class="card-b">
                     <div class="row">
                       <button id="selectProjectBtn" class="btn">Seleccionar carpeta</button>
                       <button id="analyzeLocalBtn" class="btn primary" disabled>Analizar</button>
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
+                      <button id="toggleFolderLimitBtn" class="btn">Limitar carpetas analizadas</button>
+                    </div>
+
+                    <div id="folderLimitPanel" class="card" style="margin-top:12px; display:none; box-shadow:none">
+                      <div class="card-h">
+                        <div>
+                          <h2>Filtrado de carpetas</h2>
+                          <p class="hint">Se aplica a Local y GitHub. Una carpeta por línea (relativa al proyecto).</p>
+                        </div>
+                      </div>
+
+                      <div class="card-b">
+                        <div class="field" style="min-width:100%">
+                          <label for="folderWhitelistInput">Carpetas a analizar</label>
+                          <textarea id="folderWhitelistInput" rows="4" placeholder="routes&#10;src/api"></textarea>
+
+                          <div class="status" style="margin-top:8px">
+                            <span class="dot"></span>
+                            <span id="folderFilterStatusText">Sin límite</span>
+                          </div>
+                        </div>
+
+                        <div class="row" style="margin-top:10px">
+                          <button id="saveFolderLimitBtn" class="btn primary">Guardar</button>
+                          <button id="clearFolderLimitBtn" class="btn">Quitar límite</button>
+                        </div>
+                      </div>
                     </div>
                     <div class="row" style="margin-top:12px">
                       <div class="status">
@@ -144,19 +177,63 @@
                     </div>
 
                     <div class="row fill" style="margin-top:14px">
+                      <div class="field" style="flex:0 0 170px; min-width:170px">
+                        <label>&nbsp;</label>
+                        <button id="githubLoadReposBtn" class="btn" disabled>
+                          Listar repositorios
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
                       <div class="field">
                         <label for="githubReposSelect">Repositorio</label>
                         <select id="githubReposSelect" disabled>
-                          <option value="">-- selecciona repo --</option>
+                          <option value="">-- selecciona repositorio --</option>
                         </select>
                       </div>
-                      <div class="field" style="flex:0 0 170px; min-width:170px">
-                        <label>&nbsp;</label>
-                        <button id="githubLoadReposBtn" class="btn" disabled>Listar repos</button>
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
+                      <div class="field">
+                        <label for="githubBranchSelect">Rama</label>
+                        <select id="githubBranchSelect" disabled>
+                          <option value="">-- selecciona rama --</option>
+                        </select>
                       </div>
-                      <div class="field" style="flex:0 0 170px; min-width:170px">
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
+                      <button id="toggleFolderLimitBtnGithub" class="btn">Limitar carpetas analizadas</button>
+                    </div>
+
+                    <div id="folderLimitPanelGithub" class="card" style="margin-top:12px; display:none; box-shadow:none">
+                      <div class="card-h">
+                        <div>
+                          <h2>Límite de carpetas</h2>
+                          <p class="hint">Una carpeta por línea. Rutas relativas al proyecto (ej: routes, src/api).</p>
+                        </div>
+                      </div>
+
+                      <div class="card-b">
+                        <div class="field" style="min-width: 100%">
+                          <label for="folderWhitelistInputGithub">Carpetas a analizar</label>
+                          <textarea id="folderWhitelistInputGithub" rows="4" placeholder="routes&#10;src/api"></textarea>
+                        </div>
+
+                        <div class="row" style="margin-top:10px">
+                          <button id="saveFolderLimitBtnGithub" class="btn primary">Guardar</button>
+                          <button id="clearFolderLimitBtnGithub" class="btn">Quitar límite</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row fill" style="margin-top:14px">
+                      <div class="field" style="flex:0 0 200px; min-width:200px">
                         <label>&nbsp;</label>
-                        <button id="githubAnalyzeRepoBtn" class="btn primary" disabled>Analizar repo</button>
+                        <button id="githubAnalyzeRepoBtn" class="btn primary" disabled>
+                          Analizar repositorio
+                        </button>
                       </div>
                     </div>
 
@@ -250,12 +327,19 @@
       const localDot = document.getElementById("localDot");
       const localCountDot = document.getElementById("localCountDot");
       const localCountText = document.getElementById("localCountText");
+      const toggleFolderLimitBtn = document.getElementById("toggleFolderLimitBtn");
+      const folderLimitPanel = document.getElementById("folderLimitPanel");
+      const folderWhitelistInput = document.getElementById("folderWhitelistInput");
+      const saveFolderLimitBtn = document.getElementById("saveFolderLimitBtn");
+      const clearFolderLimitBtn = document.getElementById("clearFolderLimitBtn");
+      const folderFilterStatusText = document.getElementById("folderFilterStatusText");
 
       const githubTokenInput = document.getElementById("githubToken");
       const githubSaveTokenBtn = document.getElementById("githubSaveTokenBtn");
       const githubStatus = document.getElementById("githubStatus");
       const githubLoadReposBtn = document.getElementById("githubLoadReposBtn");
       const githubReposSelect = document.getElementById("githubReposSelect");
+      const githubBranchSelect = document.getElementById("githubBranchSelect");
       const githubAnalyzeRepoBtn = document.getElementById("githubAnalyzeRepoBtn");
       const projectPathGithub = document.getElementById("projectPathGithub");
       const routesTableGithub = document.getElementById("routesTableGithub");
@@ -275,6 +359,60 @@
       function setDot(dotEl, state) {
         dotEl.classList.remove("good","bad","warn");
         if (state) dotEl.classList.add(state);
+      }
+
+      function normalizeFolders(raw) {
+        return (raw || "")
+          .split(/\r?\n|,/g)
+          .map(s => s.trim())
+          .filter(Boolean);
+      }
+
+      function renderFolderFilterStatus(folders) {
+        if (!folders || !folders.length) {
+          folderFilterStatusText.textContent = "Sin límite";
+        } else {
+          folderFilterStatusText.textContent = `Límite activo: ${folders.join(", ")}`;
+        }
+      }
+
+      function wireFolderFilterUI({
+        toggleBtnId,
+        panelId,
+        inputId,
+        saveBtnId,
+        clearBtnId,
+      }) {
+        const toggleBtn = document.getElementById(toggleBtnId);
+        const panel = document.getElementById(panelId);
+        const input = document.getElementById(inputId);
+        const saveBtn = document.getElementById(saveBtnId);
+        const clearBtn = document.getElementById(clearBtnId);
+
+        if (!toggleBtn || !panel || !input || !saveBtn || !clearBtn) return;
+
+        const normalizeFolders = (raw) =>
+          (raw || "")
+            .split(/\r?\n|,/g)
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+        toggleBtn.addEventListener("click", () => {
+          const isHidden = panel.style.display === "none" || panel.style.display === "";
+          panel.style.display = isHidden ? "" : "none";
+        });
+
+        saveBtn.addEventListener("click", async () => {
+          const folders = normalizeFolders(input.value);
+          await window.api.settingsSave({ folderWhitelist: folders });
+          alert("Filtro guardado. Se aplicará en el siguiente análisis.");
+        });
+
+        clearBtn.addEventListener("click", async () => {
+          input.value = "";
+          await window.api.settingsSave({ folderWhitelist: [] });
+          alert("Límite quitado. Se aplicará en el siguiente análisis.");
+        });
       }
 
       function renderRoutes(tbody, table, routes, countTextEl, countDotEl) {
@@ -307,6 +445,13 @@
 
       async function initSettings() {
         const s = await window.api.settingsLoad();
+        const value = (s?.folderWhitelist?.length) ? s.folderWhitelist.join("\n") : "";
+
+        const localInput = document.getElementById("folderWhitelistInput");
+        if (localInput) localInput.value = value;
+
+        const githubInput = document.getElementById("folderWhitelistInputGithub");
+        if (githubInput) githubInput.value = value;
 
         if (s?.githubToken) {
           githubTokenInput.value = s.githubToken;
@@ -333,6 +478,13 @@
           projectPathGithub.textContent = `GitHub: ${s.lastGithubRepo}`;
         } else {
           projectPathGithub.textContent = "ninguno";
+        }
+
+        if (s?.folderWhitelist?.length) {
+          folderWhitelistInput.value = s.folderWhitelist.join("\n");
+          renderFolderFilterStatus(s.folderWhitelist);
+        } else {
+          renderFolderFilterStatus([]);
         }
 
         renderRoutes(tbodyLocal, routesTableLocal, [], localCountText, localCountDot);
@@ -414,16 +566,21 @@
           alert("Error listando repos: " + res.error);
           return;
         }
-        githubReposSelect.innerHTML = '<option value="">-- selecciona repo --</option>';
+
+        githubReposSelect.innerHTML =
+          '<option value="">-- selecciona repo --</option>';
+
         res.repos.forEach((r) => {
           const opt = document.createElement("option");
           opt.value = r.full_name;
-          opt.textContent = r.full_name + (r.private ? " (privado)" : "");
+          opt.textContent = r.full_name;
           githubReposSelect.appendChild(opt);
         });
+
         githubReposSelect.disabled = false;
-        githubAnalyzeRepoBtn.disabled = false;
-        setActiveSource("Modo GitHub (repos cargados)");
+
+        githubBranchSelect.disabled = true;
+        githubAnalyzeRepoBtn.disabled = true;
       });
 
       githubAnalyzeRepoBtn.addEventListener("click", async () => {
@@ -432,18 +589,23 @@
           alert("Selecciona un repo");
           return;
         }
+
+        const branch = githubBranchSelect.value || null;
         setActiveSource("Clonando/actualizando repo y analizando...");
-        const result = await window.api.githubAnalyzeRepo(fullName);
+
+        const result = await window.api.githubAnalyzeRepo(fullName, branch);
         if (result.error) {
           alert("Error analizando repo: " + result.error);
           setActiveSource("Error en análisis GitHub");
           return;
         }
+
         const routes = result.routes || [];
         renderRoutes(tbodyGithub, routesTableGithub, routes, githubCountText, githubCountDot);
         exportBtnGithub.disabled = routes.length === 0;
-        projectPathGithub.textContent = `GitHub: ${fullName}`;
-        await window.api.settingsSave({ lastGithubRepo: fullName });
+        projectPathGithub.textContent = `GitHub: ${fullName}${branch ? " (" + branch + ")" : ""}`;
+
+        await window.api.settingsSave({ lastGithubRepo: fullName, lastGithubBranch: branch });
         setActiveSource(`GitHub analizado (${routes.length} rutas)`);
       });
 
@@ -459,6 +621,57 @@
         }
       });
 
+      githubReposSelect.addEventListener("change", async () => {
+        const fullName = githubReposSelect.value;
+
+        githubBranchSelect.innerHTML =
+          '<option value="">-- selecciona branca --</option>';
+        githubBranchSelect.disabled = true;
+        githubAnalyzeRepoBtn.disabled = true;
+
+        if (!fullName) return;
+
+        const res = await window.api.githubListBranches(fullName);
+        if (res.error) {
+          alert("Error listando ramas: " + res.error);
+          return;
+        }
+
+        res.branches.forEach((b) => {
+          const opt = document.createElement("option");
+          opt.value = b.name;
+          opt.textContent = b.name;
+          githubBranchSelect.appendChild(opt);
+        });
+
+        githubBranchSelect.disabled = false;
+
+        if (res.defaultBranch) {
+          githubBranchSelect.value = res.defaultBranch;
+          githubAnalyzeRepoBtn.disabled = false;
+        }
+      });
+
+      githubBranchSelect.addEventListener("change", () => {
+        githubAnalyzeRepoBtn.disabled = !githubBranchSelect.value;
+      });
+      
+      wireFolderFilterUI({
+        toggleBtnId: "toggleFolderLimitBtn",
+        panelId: "folderLimitPanel",
+        inputId: "folderWhitelistInput",
+        saveBtnId: "saveFolderLimitBtn",
+        clearBtnId: "clearFolderLimitBtn",
+      });
+
+      wireFolderFilterUI({
+        toggleBtnId: "toggleFolderLimitBtnGithub",
+        panelId: "folderLimitPanelGithub",
+        inputId: "folderWhitelistInputGithub",
+        saveBtnId: "saveFolderLimitBtnGithub",
+        clearBtnId: "clearFolderLimitBtnGithub",
+      });
+      
       setTab("local");
       initSettings();
     </script>

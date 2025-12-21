@@ -465,7 +465,18 @@ function buildJsdocFromRoutes(routes) {
   return out;
 }
 
-function analyzeProject(projectRoot) {
+function analyzeProject(projectRoot, options = {}) {
+  const folderWhitelist = Array.isArray(options.folderWhitelist) ? options.folderWhitelist : [];
+
+  function isInsideWhitelist(fullPath) {
+    if (!folderWhitelist.length) return true;
+    const rel = path.relative(projectRoot, fullPath).replace(/\\/g, "/");
+    return folderWhitelist.some((f) => {
+      const norm = f.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+      return rel === norm || rel.startsWith(norm + "/");
+    });
+  }
+
   function collectSourceFiles(dir) {
     const files = [];
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -473,8 +484,13 @@ function analyzeProject(projectRoot) {
 
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+
+        if (!isInsideWhitelist(fullPath)) continue;
+
         files.push(...collectSourceFiles(fullPath));
       } else if (entry.isFile()) {
+        if (!isInsideWhitelist(fullPath)) continue;
+
         if (fullPath.endsWith(".js") || fullPath.endsWith(".ts")) files.push(fullPath);
       }
     }
@@ -503,6 +519,7 @@ function analyzeProject(projectRoot) {
   return {
     projectRoot,
     stats: {
+      folderWhitelist: folderWhitelist,
       totalSourceFiles: allSourceFiles.length,
       candidateFiles: candidateFiles.length,
       routesCount: routes.length,

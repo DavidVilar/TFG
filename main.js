@@ -87,9 +87,23 @@ ipcMain.handle("select-project-dir", async () => {
 
 ipcMain.handle("analyze-project", async (_event, projectRoot) => {
   try {
-    const result = analyzeProject(projectRoot);
+    const settings = loadSettings();
+
+    const folderWhitelist = Array.isArray(settings.folderWhitelist)
+      ? settings.folderWhitelist
+      : [];
+
+    const result = analyzeProject(projectRoot, {
+      folderWhitelist,
+    });
+
     lastProjectAnalysis = result;
-    saveSettings({ ...loadSettings(), lastLocalProjectDir: projectRoot });
+
+    saveSettings({
+      ...settings,
+      lastLocalProjectDir: projectRoot,
+    });
+
     return result;
   } catch (e) {
     console.error(e);
@@ -188,37 +202,77 @@ ipcMain.handle("github-list-repos", async () => {
   }
 });
 
-ipcMain.handle("github-analyze-repo", async (_event, { fullName }) => {
-  if (!octokit) {
-    return { error: "GitHub no configurat." };
-  }
-
+ipcMain.handle("github-analyze-repo", async (_, payload) => {
   try {
-    const baseTmpDir = path.join(os.tmpdir(), "tfg-docgen");
-    if (!fs.existsSync(baseTmpDir)) fs.mkdirSync(baseTmpDir, { recursive: true });
-
-    const localDir = path.join(
-      baseTmpDir,
-      fullName.replace("/", "_")
-    );
-
-    const git = simpleGit();
-
-    const cloneUrl = `https://github.com/${fullName}.git`;
-
-    if (!fs.existsSync(localDir)) {
-      await git.clone(cloneUrl, localDir);
-    } else {
-      await simpleGit({ baseDir: localDir }).pull();
+    if (!octokit) {
+      return { error: "GitHub no conectado. Guarda y prueba el token." };
     }
 
-    const result = analyzeProject(localDir);
-    lastProjectAnalysis = result;
-    saveSettings({ ...loadSettings(), lastGithubRepo: fullName });
-    return result;
+    const settings = loadSettings();
+
+    const folderWhitelist = Array.isArray(settings.folderWhitelist)
+      ? settings.folderWhitelist
+      : [];
+
+    const { fullName, branch } = payload || {};
+    const [owner, repo] = (fullName || "").split("/");
+    if (!owner || !repo) {
+      return { error: "Formato de repo inválido (owner/repo)" };
+    }
+
+    let finalBranch = branch;
+    if (!finalBranch) {
+      const repoInfo = await octokit.repos.get({ owner, repo });
+      finalBranch = repoInfo.data.default_branch;
+    }
+
+    const reposBaseDir = path.join(app.getPath("userData"), "repos");
+    if (!fs.existsSync(reposBaseDir)) {
+      fs.mkdirSync(reposBaseDir, { recursive: true });
+    }
+
+    const localRepoDir = path.join(reposBaseDir, `${owner}__${repo}`);
+    const git = simpleGit();
+    const remoteUrl = `https://github.com/${owner}/${repo}.git`;
+
+    if (!fs.existsSync(localRepoDir)) {
+      await git.clone(remoteUrl, localRepoDir);
+    }
+
+    const repoGit = simpleGit(localRepoDir);
+
+    await repoGit.fetch(["--all", "--prune"]);
+
+    const branches = await repoGit.branch(["-a"]);
+    const localExists = branches.all.includes(finalBranch);
+    const remoteExists = branches.all.includes(`remotes/origin/${finalBranch}`);
+
+    if (!localExists) {
+      if (!remoteExists) {
+        return { error: `La rama "${finalBranch}" no existe en origin.` };
+      }
+      await repoGit.checkout(["-b", finalBranch, `origin/${finalBranch}`]);
+    } else {
+      await repoGit.checkout(finalBranch);
+    }
+
+    await repoGit.pull("origin", finalBranch);
+
+    const result = analyzeProject(localRepoDir, {
+      folderWhitelist,
+    });
+
+    lastAnalysisResult = result;
+
+    return {
+      ...result,
+      repo: fullName,
+      branch: finalBranch,
+      folderWhitelist,
+    };
   } catch (e) {
-    console.error("Error analitzant repo GitHub:", e);
-    return { error: e.message };
+    console.error(e);
+    return { error: e.message || String(e) };
   }
 });
 
@@ -232,3 +286,29 @@ ipcMain.handle("settings-save", async (_event, patch) => {
   saveSettings(next);
   return { ok: true };
 });
+
+ipcMain.handle("github-list-branches", async (_, fullName) => {
+  try {
+    if (!octokit) return { error: "GitHub no conectado. Guarda y prueba el token." };
+
+    const [owner, repo] = fullName.split("/");
+    if (!owner || !repo) return { error: "Formato de repo inválido (owner/repo)" };
+
+    const repoInfo = await octokit.repos.get({ owner, repo });
+    const defaultBranch = repoInfo.data.default_branch;
+
+    const branchesRes = await octokit.repos.listBranches({
+      owner,
+      repo,
+      per_page: 100,
+    });
+
+    return {
+      defaultBranch,
+      branches: branchesRes.data.map((b) => ({ name: b.name })),
+    };
+  } catch (e) {
+    return { error: e.message || String(e) };
+  }
+});
+
