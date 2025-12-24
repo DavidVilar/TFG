@@ -3,9 +3,11 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("api", {
   selectProjectDir: () => ipcRenderer.invoke("select-project-dir"),
   analyzeProject: (dir) => ipcRenderer.invoke("analyze-project", dir),
-  exportDoc: (format) => ipcRenderer.invoke("export-doc", { format }),
+  exportDoc: (format) => ipcRenderer.invoke("export-doc", format),
   settingsLoad: () => ipcRenderer.invoke("settings-load"),
   settingsSave: (patch) => ipcRenderer.invoke("settings-save", patch),
+  previewSwagger: () => ipcRenderer.invoke("preview-swagger"),
+
 
   githubSetToken: (token) => ipcRenderer.invoke("github-set-token", token),
   githubListRepos: () => ipcRenderer.invoke("github-list-repos"),

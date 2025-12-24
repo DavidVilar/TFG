@@ -4,6 +4,7 @@ const path = require("path");
 const simpleGit = require("simple-git");
 const { Octokit } = require("@octokit/rest");
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { startSwaggerPreview } = require("./core/swaggerPreview");
 const {
   analyzeFile,
   analyzeProject,
@@ -15,6 +16,9 @@ let lastProjectAnalysis = null;
 
 let githubToken = null;
 let octokit = null;
+
+let swaggerPreview = null;
+let swaggerPreviewWin = null;
 
 const SETTINGS_FILE = () => path.join(app.getPath("userData"), "settings.json");
 
@@ -262,7 +266,7 @@ ipcMain.handle("github-analyze-repo", async (_, payload) => {
       folderWhitelist,
     });
 
-    lastAnalysisResult = result;
+    lastProjectAnalysis = result;
 
     return {
       ...result,
@@ -312,3 +316,43 @@ ipcMain.handle("github-list-branches", async (_, fullName) => {
   }
 });
 
+ipcMain.handle("preview-swagger", async () => {
+  const routes = lastProjectAnalysis?.routes || [];
+  if (!routes.length) return { error: "No hay rutas analizadas" };
+
+  if (swaggerPreviewWin && !swaggerPreviewWin.isDestroyed()) {
+    swaggerPreviewWin.focus();
+    return { ok: true };
+  }
+
+  swaggerPreview = await startSwaggerPreview(() => {
+    return buildOpenApiDocFromRoutes(routes, {
+      title: "API generada automàticament",
+      version: "1.0.0",
+      serverUrl: "http://localhost:3000",
+      descriptionByRouteFile: true,
+    });
+  });
+
+  swaggerPreviewWin = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    title: "Previsualización Swagger",
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  await swaggerPreviewWin.loadURL(swaggerPreview.url);
+
+  swaggerPreviewWin.on("closed", async () => {
+    swaggerPreviewWin = null;
+    if (swaggerPreview) {
+      await swaggerPreview.stop();
+      swaggerPreview = null;
+    }
+  });
+
+  return { ok: true };
+});

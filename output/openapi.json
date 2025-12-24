@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "API generada automàticament (projecte complet)",
+    "title": "API generada automàticament",
     "version": "1.0.0"
   },
   "servers": [
@@ -10,71 +10,16 @@
     }
   ],
   "paths": {
-    "/users": {
-      "get": {
-        "summary": "GET /users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a test-project\\routes\\users.js"
-      },
-      "post": {
-        "summary": "POST /users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a test-project\\routes\\users.js"
-      }
-    },
-    "/login": {
-      "post": {
-        "summary": "POST /login",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a examples\\example1.js"
-      }
-    },
-    "/account/{id}": {
-      "delete": {
-        "summary": "DELETE /account/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "description": "Definit a examples\\example1.js"
-      }
-    },
     "/status": {
       "get": {
         "summary": "GET /status",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "HTTP 200"
           }
         },
-        "description": "Definit a test-project\\index.js"
+        "description": "Definit a index.js"
       }
     },
     "/admin/dashboard": {
@@ -83,10 +28,32 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "HTTP 200"
           }
         },
-        "description": "Definit a test-project\\routes\\admin.js"
+        "description": "Definit a routes\\admin.js"
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "GET /users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
+      },
+      "post": {
+        "summary": "POST /users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
       }
     },
     "/users/{id}": {
@@ -104,10 +71,10 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "HTTP 200"
           }
         },
-        "description": "Definit a test-project\\routes\\users.js"
+        "description": "Definit a routes\\users.js"
       },
       "delete": {
         "summary": "DELETE /users/:id",
@@ -123,10 +90,88 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "HTTP 200"
           }
         },
-        "description": "Definit a test-project\\routes\\users.js"
+        "description": "Definit a routes\\users.js"
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "GET /api/users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "summary": "GET /api/users/:id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "summary": "GET /v1/users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "summary": "GET /v1/users/:id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
+      }
+    },
+    "/api/v1/users/nested": {
+      "get": {
+        "summary": "GET /api/v1/users/nested",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "HTTP 200"
+          }
+        },
+        "description": "Definit a routes\\users.js"
       }
     }
   }

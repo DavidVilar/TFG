@@ -369,4 +369,15 @@ textarea:focus{
   background: rgba(255,255,255,.04);
 }
 
+.export-buttons {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.export-right {
+  margin-left: auto;
+}
+
 .footer-space{height:18px}

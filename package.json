@@ -30,7 +30,10 @@
     "@babel/traverse": "^7.28.5",
     "@octokit/rest": "^22.0.1",
     "electron": "^39.2.5",
-    "simple-git": "^3.30.0"
+    "express": "^5.2.1",
+    "get-port": "^7.1.0",
+    "simple-git": "^3.30.0",
+    "swagger-ui-dist": "^5.31.0"
   },
   "devDependencies": {
     "jsdoc": "^4.0.5"

@@ -110,9 +110,12 @@
                           <option value="jsdoc">JSDoc</option>
                         </select>
                       </div>
-                      <div class="field" style="flex:0 0 160px; min-width:160px">
+                      <div class="field" style="flex: 1 1 320px; min-width: 320px">
                         <label>&nbsp;</label>
-                        <button id="exportBtnLocal" class="btn" disabled>Exportar</button>
+                        <div class="export-buttons">
+                          <button id="previewSwaggerBtnLocal" class="btn" disabled>Previsualizar Swagger</button>
+                          <button id="exportBtnLocal" class="btn export-right" disabled>Exportar</button>
+                        </div>
                       </div>
                     </div>
                     <div class="status" style="margin-top:10px">
@@ -261,9 +264,12 @@
                           <option value="jsdoc">JSDoc</option>
                         </select>
                       </div>
-                      <div class="field" style="flex:0 0 160px; min-width:160px">
+                      <div class="field" style="flex: 1 1 320px; min-width: 320px">
                         <label>&nbsp;</label>
-                        <button id="exportBtnGithub" class="btn" disabled>Exportar</button>
+                        <div class="export-buttons">
+                          <button id="previewSwaggerBtnGithub" class="btn" disabled>Previsualizar Swagger</button>
+                          <button id="exportBtnGithub" class="btn export-right" disabled>Exportar</button>
+                        </div>
                       </div>
                     </div>
                     <div class="status" style="margin-top:10px">
@@ -333,6 +339,8 @@
       const saveFolderLimitBtn = document.getElementById("saveFolderLimitBtn");
       const clearFolderLimitBtn = document.getElementById("clearFolderLimitBtn");
       const folderFilterStatusText = document.getElementById("folderFilterStatusText");
+      const previewSwaggerBtnLocal = document.getElementById("previewSwaggerBtnLocal");
+      const previewSwaggerBtnGithub = document.getElementById("previewSwaggerBtnGithub");
 
       const githubTokenInput = document.getElementById("githubToken");
       const githubSaveTokenBtn = document.getElementById("githubSaveTokenBtn");
@@ -519,6 +527,7 @@
         const routes = result.routes || [];
         renderRoutes(tbodyLocal, routesTableLocal, routes, localCountText, localCountDot);
         exportBtnLocal.disabled = routes.length === 0;
+        previewSwaggerBtnLocal.disabled = routes.length === 0;
         setDot(localDot, routes.length ? "good" : "warn");
         setActiveSource(`Local analizado (${routes.length} rutas)`);
       });
@@ -603,6 +612,7 @@
         const routes = result.routes || [];
         renderRoutes(tbodyGithub, routesTableGithub, routes, githubCountText, githubCountDot);
         exportBtnGithub.disabled = routes.length === 0;
+        previewSwaggerBtnGithub.disabled = routes.length === 0;
         projectPathGithub.textContent = `GitHub: ${fullName}${branch ? " (" + branch + ")" : ""}`;
 
         await window.api.settingsSave({ lastGithubRepo: fullName, lastGithubBranch: branch });
@@ -650,6 +660,16 @@
           githubBranchSelect.value = res.defaultBranch;
           githubAnalyzeRepoBtn.disabled = false;
         }
+      });
+
+      previewSwaggerBtnLocal.addEventListener("click", async () => {
+        const res = await window.api.previewSwagger();
+        if (res?.error) alert("Error: " + res.error);
+      });
+
+      previewSwaggerBtnGithub.addEventListener("click", async () => {
+        const res = await window.api.previewSwagger();
+        if (res?.error) alert("Error: " + res.error);
       });
 
       githubBranchSelect.addEventListener("change", () => {
