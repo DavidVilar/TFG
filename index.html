@@ -113,7 +113,7 @@
                       <div class="field" style="flex: 1 1 320px; min-width: 320px">
                         <label>&nbsp;</label>
                         <div class="export-buttons">
-                          <button id="previewSwaggerBtnLocal" class="btn" disabled>Previsualizar Swagger</button>
+                          <button id="previewSwaggerBtnLocal" class="btn" disabled>Previsualización</button>
                           <button id="exportBtnLocal" class="btn export-right" disabled>Exportar</button>
                         </div>
                       </div>
@@ -267,7 +267,7 @@
                       <div class="field" style="flex: 1 1 320px; min-width: 320px">
                         <label>&nbsp;</label>
                         <div class="export-buttons">
-                          <button id="previewSwaggerBtnGithub" class="btn" disabled>Previsualizar Swagger</button>
+                          <button id="previewSwaggerBtnGithub" class="btn" disabled>Previsualización</button>
                           <button id="exportBtnGithub" class="btn export-right" disabled>Exportar</button>
                         </div>
                       </div>
@@ -359,6 +359,8 @@
       const githubCountText = document.getElementById("githubCountText");
 
       let currentProjectDir = null;
+      let lastLocalRoutes = [];
+      let lastGithubRoutes = [];
 
       function setActiveSource(text) {
         activeSourceText.textContent = text;
@@ -499,6 +501,31 @@
         renderRoutes(tbodyGithub, routesTableGithub, [], githubCountText, githubCountDot);
       }
 
+      function updatePreviewButtonState(format, hasRoutes, isGithub = false) {
+        const btn = isGithub
+          ? previewSwaggerBtnGithub
+          : previewSwaggerBtnLocal;
+
+        btn.disabled = !(format === "openapi" && hasRoutes);
+      }
+
+      function syncPreviewButtons() {
+        updatePreviewButtonState(
+          exportFormatLocal.value,
+          lastLocalRoutes.length > 0,
+          false
+        );
+
+        updatePreviewButtonState(
+          exportFormatGithub.value,
+          lastGithubRoutes.length > 0,
+          true
+        );
+      }
+
+      exportFormatLocal.addEventListener("change", syncPreviewButtons);
+      exportFormatGithub.addEventListener("change", syncPreviewButtons);
+
       selectProjectBtn.addEventListener("click", async () => {
         const dir = await window.api.selectProjectDir();
         if (dir) {
@@ -525,9 +552,17 @@
           return;
         }
         const routes = result.routes || [];
+
+        lastLocalRoutes = routes;
+        syncPreviewButtons();
+        
         renderRoutes(tbodyLocal, routesTableLocal, routes, localCountText, localCountDot);
         exportBtnLocal.disabled = routes.length === 0;
-        previewSwaggerBtnLocal.disabled = routes.length === 0;
+        updatePreviewButtonState(
+          exportFormatSelect.value,
+          routes.length > 0,
+          false
+        );
         setDot(localDot, routes.length ? "good" : "warn");
         setActiveSource(`Local analizado (${routes.length} rutas)`);
       });
@@ -610,9 +645,17 @@
         }
 
         const routes = result.routes || [];
+
+        lastGithubRoutes = routes;
+        syncPreviewButtons();
+
         renderRoutes(tbodyGithub, routesTableGithub, routes, githubCountText, githubCountDot);
         exportBtnGithub.disabled = routes.length === 0;
-        previewSwaggerBtnGithub.disabled = routes.length === 0;
+        updatePreviewButtonState(
+          exportFormatSelect.value,
+          routes.length > 0,
+          true
+        );
         projectPathGithub.textContent = `GitHub: ${fullName}${branch ? " (" + branch + ")" : ""}`;
 
         await window.api.settingsSave({ lastGithubRepo: fullName, lastGithubBranch: branch });
