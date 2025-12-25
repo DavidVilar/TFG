@@ -417,7 +417,7 @@
           await window.api.settingsSave({ folderWhitelist: folders });
 
           renderFolderFilterStatus(folders);
-          folderFilterStatusText.textContent = "Filtro guardado ✅";
+          folderFilterStatusText.textContent = "Filtro guardados";
 
           requestAnimationFrame(() => input.focus());
         });
