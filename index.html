@@ -513,7 +513,7 @@
           ? previewSwaggerBtnGithub
           : previewSwaggerBtnLocal;
 
-        btn.disabled = !(format === "openapi" && hasRoutes);
+        btn.disabled = !((format === "openapi" || format === "jsdoc") && hasRoutes);
       }
 
       function syncPreviewButtons() {
@@ -659,7 +659,7 @@
         renderRoutes(tbodyGithub, routesTableGithub, routes, githubCountText, githubCountDot);
         exportBtnGithub.disabled = routes.length === 0;
         updatePreviewButtonState(
-          exportFormatLocal.value,
+          exportFormatGithub.value,
           routes.length > 0,
           true
         );
@@ -713,13 +713,28 @@
       });
 
       previewSwaggerBtnLocal.addEventListener("click", async () => {
-        const res = await window.api.previewSwagger();
-        if (res?.error) alert("Error: " + res.error);
+        console.log("CLICK previsualización local", exportFormatLocal.value);
+
+        const res =
+          exportFormatLocal.value === "openapi"
+            ? await window.api.previewSwagger()
+            : await window.api.previewJsdoc();
+
+        console.log("RESP previsualización local:", res);
+
+        if (res?.error) alert("Error: " + res.error + (res.details ? "\n\n" + res.details : ""));
       });
 
       previewSwaggerBtnGithub.addEventListener("click", async () => {
-        const res = await window.api.previewSwagger();
-        if (res?.error) alert("Error: " + res.error);
+        const format = exportFormatGithub.value;
+
+        const res = format === "openapi"
+          ? await window.api.previewSwagger()
+          : await window.api.previewJsdoc();
+
+        if (res?.error) {
+          alert("Error: " + res.error + (res.details ? "\n\n" + res.details : ""));
+        }
       });
 
       githubBranchSelect.addEventListener("change", () => {

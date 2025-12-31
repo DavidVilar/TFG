@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld("api", {
   settingsLoad: () => ipcRenderer.invoke("settings-load"),
   settingsSave: (patch) => ipcRenderer.invoke("settings-save", patch),
   previewSwagger: () => ipcRenderer.invoke("preview-swagger"),
-
+  previewJsdoc: () => ipcRenderer.invoke("preview-jsdoc"),
 
   githubSetToken: (token) => ipcRenderer.invoke("github-set-token", token),
   githubListRepos: () => ipcRenderer.invoke("github-list-repos"),
