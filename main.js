@@ -23,6 +23,7 @@ let swaggerPreview = null;
 let swaggerPreviewWin = null;
 
 const SETTINGS_FILE = () => path.join(app.getPath("userData"), "settings.json");
+const UI_DIR = path.join(__dirname, "interface");
 
 function loadSettings() {
   try {
@@ -45,11 +46,11 @@ function createWindow() {
     width: 1000,
     height: 700,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(UI_DIR, "preload.js"),
     },
   });
 
-  win.loadFile("index.html");
+  win.loadFile(path.join(UI_DIR, "index.html"));
 }
 
 function execFileAsync(file, args, opts = {}) {
