@@ -25,6 +25,49 @@ let swaggerPreviewWin = null;
 const SETTINGS_FILE = () => path.join(app.getPath("userData"), "settings.json");
 const UI_DIR = path.join(__dirname, "interface");
 
+let mainWindow = null;
+
+const DEBUG_LOG_MAX = 2000;
+const debugLogs = [];
+
+function pushDebugLog(level, message, meta) {
+  const entry = {
+    ts: new Date().toISOString(),
+    level: String(level || "INFO").toUpperCase(),
+    message: String(message || ""),
+    meta: meta ?? null,
+  };
+
+  debugLogs.push(entry);
+  if (debugLogs.length > DEBUG_LOG_MAX) debugLogs.splice(0, debugLogs.length - DEBUG_LOG_MAX);
+
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("debug-log", entry);
+    }
+  } catch (_) {}
+}
+
+function makeLogger(scope) {
+  return {
+    info: (msg, meta) => pushDebugLog("INFO", `[${scope}] ${msg}`, meta),
+    warn: (msg, meta) => pushDebugLog("WARN", `[${scope}] ${msg}`, meta),
+    error: (msg, meta) => pushDebugLog("ERROR", `[${scope}] ${msg}`, meta),
+  };
+}
+
+process.on("uncaughtException", (err) => {
+  pushDebugLog("ERROR", "[main] uncaughtException", {
+    message: err?.message,
+    stack: err?.stack,
+  });
+});
+process.on("unhandledRejection", (reason) => {
+  pushDebugLog("ERROR", "[main] unhandledRejection", {
+    reason: String(reason),
+  });
+});
+
 function loadSettings() {
   try {
     const p = SETTINGS_FILE();
@@ -49,6 +92,8 @@ function createWindow() {
       preload: path.join(UI_DIR, "preload.js"),
     },
   });
+
+  mainWindow = win;
 
   win.loadFile(path.join(UI_DIR, "index.html"));
 }
@@ -107,6 +152,7 @@ ipcMain.handle("select-project-dir", async () => {
 });
 
 ipcMain.handle("analyze-project", async (_event, projectRoot) => {
+  const log = makeLogger("analyze-project");
   try {
     const settings = loadSettings();
 
@@ -114,11 +160,16 @@ ipcMain.handle("analyze-project", async (_event, projectRoot) => {
       ? settings.folderWhitelist
       : [];
 
+    log.info("Inicio análisis", { projectRoot, folderWhitelist });
+
     const result = analyzeProject(projectRoot, {
       folderWhitelist,
+      logger: log,
     });
 
     lastProjectAnalysis = result;
+
+    log.info("Fin análisis", { stats: result?.stats });
 
     saveSettings({
       ...settings,
@@ -127,6 +178,7 @@ ipcMain.handle("analyze-project", async (_event, projectRoot) => {
 
     return result;
   } catch (e) {
+    log.error("Error en análisis", { message: e?.message, stack: e?.stack });
     console.error(e);
     return { error: e.message };
   }
@@ -224,22 +276,26 @@ ipcMain.handle("github-list-repos", async () => {
 });
 
 ipcMain.handle("github-analyze-repo", async (_, payload) => {
-  try {
-    if (!octokit) {
-      return { error: "GitHub no conectado. Guarda y prueba el token." };
-    }
+  const log = makeLogger("github-analyze-repo");
+    try {
+      if (!octokit) {
+        log.warn("GitHub no conectado");
+        return { error: "GitHub no conectado. Guarda y prueba el token." };
+      }
 
-    const settings = loadSettings();
+      const settings = loadSettings();
+      const folderWhitelist = Array.isArray(settings.folderWhitelist)
+        ? settings.folderWhitelist
+        : [];
 
-    const folderWhitelist = Array.isArray(settings.folderWhitelist)
-      ? settings.folderWhitelist
-      : [];
+      const { fullName, branch } = payload || {};
+      const [owner, repo] = (fullName || "").split("/");
+      if (!owner || !repo) {
+        log.warn("Formato de repo inválido", { fullName });
+        return { error: "Formato de repo inválido (owner/repo)" };
+      }
 
-    const { fullName, branch } = payload || {};
-    const [owner, repo] = (fullName || "").split("/");
-    if (!owner || !repo) {
-      return { error: "Formato de repo inválido (owner/repo)" };
-    }
+    log.info("Inicio análisis repo", { fullName, branch, folderWhitelist });
 
     let finalBranch = branch;
     if (!finalBranch) {
@@ -281,9 +337,12 @@ ipcMain.handle("github-analyze-repo", async (_, payload) => {
 
     const result = analyzeProject(localRepoDir, {
       folderWhitelist,
+      logger: log,
     });
 
     lastProjectAnalysis = result;
+
+    log.info("Fin análisis repo", { repo: fullName, branch: finalBranch, stats: result?.stats });
 
     return {
       ...result,
@@ -292,6 +351,7 @@ ipcMain.handle("github-analyze-repo", async (_, payload) => {
       folderWhitelist,
     };
   } catch (e) {
+    log.error("Error analizando repo", { message: e?.message, stack: e?.stack });
     console.error(e);
     return { error: e.message || String(e) };
   }
@@ -499,5 +559,14 @@ module.exports = {};
     jsdocPreviewWin = null;
   });
 
+  return { ok: true };
+});
+
+ipcMain.handle("debug-get-logs", async () => {
+  return { logs: debugLogs };
+});
+
+ipcMain.handle("debug-clear-logs", async () => {
+  debugLogs.length = 0;
   return { ok: true };
 });

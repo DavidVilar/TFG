@@ -247,7 +247,9 @@ function collectReqResInsights(handlerFn) {
 }
 
 
-function extractRoutesFromCode(code) {
+function extractRoutesFromCode(code, options = {}) {
+  const logger = options.logger;
+
   const ast = parser.parse(code, {
     sourceType: "module",
     plugins: ["jsx", "typescript"],
@@ -259,7 +261,6 @@ function extractRoutesFromCode(code) {
   traverse(ast, {
     CallExpression(p) {
       const callee = p.node.callee;
-
       if (!isHttpRouteCall(callee)) return;
 
       const methodName = callee.property.name.toUpperCase();
@@ -270,20 +271,18 @@ function extractRoutesFromCode(code) {
       const resolved = evaluateToString(rawArg, env);
 
       if (typeof resolved !== "string") {
-        console.warn(
-          "Ruta no avaluada de manera estàtica:",
-          methodName,
-          "argument tipus",
-          rawArg?.type
-        );
+        const info = {
+          method: methodName,
+          argType: rawArg?.type,
+        };
+        if (logger?.warn) logger.warn("Ruta no evaluable estáticamente", info);
+        else console.warn("Ruta no avaluada de manera estàtica:", methodName, "argument tipus", rawArg?.type);
         return;
       }
 
       const middlewares = getMiddlewaresFromArgs(args);
-
       const handlerFns = getHandlerFunctionsFromArgs(args);
       const primaryHandler = handlerFns.length ? handlerFns[handlerFns.length - 1] : null;
-
       const insights = collectReqResInsights(primaryHandler);
 
       routes.push({
@@ -300,9 +299,9 @@ function extractRoutesFromCode(code) {
   return routes;
 }
 
-function extractRoutesFromFile(inputPath) {
+function extractRoutesFromFile(inputPath, options = {}) {
   const code = fs.readFileSync(inputPath, "utf-8");
-  const routes = extractRoutesFromCode(code);
+  const routes = extractRoutesFromCode(code, options);
   return routes.map((r) => ({
     ...r,
     file: inputPath,
@@ -467,6 +466,9 @@ function buildJsdocFromRoutes(routes) {
 
 function analyzeProject(projectRoot, options = {}) {
   const folderWhitelist = Array.isArray(options.folderWhitelist) ? options.folderWhitelist : [];
+  const logger = options.logger;
+
+  logger?.info?.("Analyzer: inicio", { projectRoot, folderWhitelist });
 
   function isInsideWhitelist(fullPath) {
     if (!folderWhitelist.length) return true;
@@ -508,7 +510,7 @@ function analyzeProject(projectRoot, options = {}) {
 
   let routes = [];
   for (const file of candidateFiles) {
-    const fileRoutes = extractRoutesFromFile(file);
+    const fileRoutes = extractRoutesFromFile(file, { logger });
     const withRelFile = fileRoutes.map((r) => ({
       ...r,
       file: path.relative(projectRoot, file),
@@ -516,7 +518,7 @@ function analyzeProject(projectRoot, options = {}) {
     routes = routes.concat(withRelFile);
   }
 
-  return {
+  const result = {
     projectRoot,
     stats: {
       folderWhitelist: folderWhitelist,
@@ -526,6 +528,10 @@ function analyzeProject(projectRoot, options = {}) {
     },
     routes,
   };
+
+  logger?.info?.("Analyzer: fin", { stats: result.stats });
+
+  return result;
 }
 
 module.exports = {

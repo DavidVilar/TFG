@@ -13,4 +13,8 @@ contextBridge.exposeInMainWorld("api", {
   githubListRepos: () => ipcRenderer.invoke("github-list-repos"),
   githubListBranches: (fullName) => ipcRenderer.invoke("github-list-branches", fullName),
   githubAnalyzeRepo: (fullName, branch) => ipcRenderer.invoke("github-analyze-repo", { fullName, branch }),
+  debugGetLogs: () => ipcRenderer.invoke("debug-get-logs"),
+  debugClearLogs: () => ipcRenderer.invoke("debug-clear-logs"),
+
+  onDebugLog: (cb) => {if (typeof cb !== "function") return; ipcRenderer.on("debug-log", (_ev, entry) => cb(entry));},
 });
