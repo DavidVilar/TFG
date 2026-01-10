@@ -8,11 +8,13 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "parse": "node parser/scanProject.js ./test-project output/openapi.json",
     "jsdoc": "node parser/scanProject.js ./test-project output/routes.js jsdoc",
     "parseproject": "node parser/scanProject.js ./test-project output/openapi.json jsdoc",
-    "start": "electron ."
+    "start": "electron .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "repository": {
     "type": "git",
