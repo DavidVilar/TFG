@@ -23,6 +23,15 @@ router.get(`${API_PREFIX}${USER_ID}`, (req, res) => {});
 const NESTED = "/nested";
 router.get(BASE + API_PREFIX + USERS + NESTED, (req, res) => {});
 
+function validateUser(req, res, next) { next(); }
+function audit() { return (req, res, next) => next(); }
+
+router.post("/users/:id/settings", validateUser, audit(), (req, res) => {
+  const { theme } = req.body;
+  const verbose = req.query.verbose;
+  if (!theme) return res.sendStatus(400);
+  return res.status(201).send();
+});
 
 function getBaseFromConfig() {
   return process.env.API_BASE || "/config";

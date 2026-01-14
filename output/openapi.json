@@ -10,168 +10,38 @@
     }
   ],
   "paths": {
-    "/status": {
+    "/": {
       "get": {
-        "summary": "GET /status",
+        "summary": "GET /",
         "parameters": [],
         "responses": {
           "200": {
             "description": "HTTP 200"
           }
         },
-        "description": "Definit a index.js"
+        "description": "Definit a test\\app.js"
       }
     },
-    "/admin/dashboard": {
-      "get": {
-        "summary": "GET /admin/dashboard",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\admin.js"
-      }
-    },
-    "/users": {
-      "get": {
-        "summary": "GET /users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      },
+    "/posts": {
       "post": {
-        "summary": "POST /users",
+        "summary": "POST /posts",
         "parameters": [],
         "responses": {
           "200": {
             "description": "HTTP 200"
           }
         },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "summary": "GET /users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
+        "description": "Definit a test\\app.js"
       },
-      "delete": {
-        "summary": "DELETE /users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/users": {
       "get": {
-        "summary": "GET /api/users",
+        "summary": "GET /posts",
         "parameters": [],
         "responses": {
           "200": {
             "description": "HTTP 200"
           }
         },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/users/{id}": {
-      "get": {
-        "summary": "GET /api/users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/v1/users": {
-      "get": {
-        "summary": "GET /v1/users",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/v1/users/{id}": {
-      "get": {
-        "summary": "GET /v1/users/:id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
-      }
-    },
-    "/api/v1/users/nested": {
-      "get": {
-        "summary": "GET /api/v1/users/nested",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "HTTP 200"
-          }
-        },
-        "description": "Definit a routes\\users.js"
+        "description": "Definit a test\\app.js"
       }
     }
   }
